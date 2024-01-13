@@ -1,0 +1,32 @@
+version: "3"
+services:
+  db: # db 서비스
+    container_name: h2 # 컨테이너 이름
+    image: oscarfonts/h2:latest # h2 이미지
+    ports: # 포트포워딩
+      - 1521:1521 # TCP 포트 : 데이터베이스 연결 포트
+      - 8081:81 # HTTP 포트 : 웹콘솔 연결 포트
+    environment: #h2 설정
+      H2_OPTIONS: -ifNotExists # DB가 이미 존재하면 재생성 X
+    volumes:
+      - ./h2/:/opt/h2-data # host 서버와 연결되는 통로 ( 저장 및 백업 경로 )
+    restart: always # 컨테이너 종료시 자동 재실행
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost:81" ]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+  app: # app 서비스
+    build:
+      context: . # Dockerfile 위치
+      dockerfile: Dockerfile # Docker 파일 이름
+    container_name: docker-spring-subject # 컨테이너 이름
+    ports: # 포트포워딩
+      - 5000:8080 # HTTP 포트 연결
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:h2:tcp://h2:1521/demo
+      SPRING_DATASOURCE_USERNAME: sa
+      SPRING_DATASOURCE_PASSWORD: ""
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create
+      depends_on:
+        db
